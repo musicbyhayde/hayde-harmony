@@ -28,7 +28,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   // Show loading spinner while session is loading
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center">
         <LoadingSpinner />
       </div>
     )
@@ -36,7 +36,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
   // If it's a public page, render without navbar
   if (isPublicPage) {
-    return <div className="min-h-screen">{children}</div>
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">{children}</div>
   }
 
   // If not authenticated and not on public page, show nothing (redirect will happen)
@@ -46,9 +46,9 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
   // Authenticated layout with navbar
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-6 py-8">
         {children}
       </main>
     </div>

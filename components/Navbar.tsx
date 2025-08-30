@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
 
@@ -9,11 +10,11 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'ADMIN': return 'bg-red-100 text-red-800'
-      case 'MODERATOR': return 'bg-blue-100 text-blue-800'
-      case 'MUSICIAN': return 'bg-green-100 text-green-800'
-      case 'CLIENT': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'ADMIN': return 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm'
+      case 'MODERATOR': return 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm'
+      case 'MUSICIAN': return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
+      case 'CLIENT': return 'bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-sm'
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-sm'
     }
   }
 
@@ -28,61 +29,67 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="text-xl font-bold text-blue-600">
-            היידה
+    <nav className="bg-gradient-to-r from-slate-50 to-blue-50 shadow-lg border-b border-blue-100 backdrop-blur-sm">
+      <div className="container mx-auto px-6">
+        <div className="flex justify-between items-center h-18">
+          <Link href="/" className="flex items-center space-x-3 space-x-reverse hover:opacity-80 transition-opacity">
+            <Image
+              src="/transparent_black_foreground.png"
+              alt="היידה לוגו"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </Link>
           
           <div className="flex items-center space-x-8 space-x-reverse">
             {/* Navigation Links */}
-            <div className="flex space-x-6 space-x-reverse">
+            <div className="flex space-x-1 space-x-reverse">
               <Link 
                 href="/" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 דשבורד
               </Link>
               <Link 
                 href="/leads" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 לידים
               </Link>
               <Link 
                 href="/opportunities" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 הזדמנויות
               </Link>
               <Link 
                 href="/events" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 אירועים
               </Link>
               <Link 
                 href="/events/new" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 rounded-lg transition-all duration-200 font-medium shadow-sm"
               >
                 אירוע חדש
               </Link>
               <Link 
                 href="/vendors" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 ספקים
               </Link>
               <Link 
                 href="/treasury" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 קופה
               </Link>
               <Link 
                 href="/reports" 
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 דוחות
               </Link>
@@ -93,33 +100,35 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-3 space-x-reverse text-gray-700 hover:text-blue-600 focus:outline-none"
+                  className="flex items-center space-x-3 space-x-reverse bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 backdrop-blur-sm border border-white/20"
                 >
                   {session.user.image && (
                     <img
                       src={session.user.image}
                       alt={session.user.name || 'User'}
-                      className="w-8 h-8 rounded-full"
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
                     />
                   )}
                   <div className="text-right">
-                    <div className="text-sm font-medium">{session.user.name}</div>
-                    <div className={`text-xs px-2 py-0.5 rounded-full inline-block ${getRoleColor((session.user as any)?.role)}`}>
+                    <div className="text-sm font-semibold text-slate-800">{session.user.name}</div>
+                    <div className={`text-xs px-3 py-1 rounded-full inline-block font-medium ${getRoleColor((session.user as any)?.role)}`}>
                       {getRoleText((session.user as any)?.role)}
                     </div>
                   </div>
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                    <div className="py-1">
-                      <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
-                        {session.user.email}
+                  <div className="absolute left-0 mt-2 w-56 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 z-50 overflow-hidden">
+                    <div className="py-2">
+                      <div className="px-4 py-3 text-sm text-slate-600 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+                        <div className="font-medium text-slate-800">{session.user.name}</div>
+                        <div className="text-xs text-slate-500 mt-1">{session.user.email}</div>
                       </div>
                       <button
                         onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                        className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 transition-all duration-200 font-medium"
                       >
+                        <span className="mr-2">←</span>
                         יציאה
                       </button>
                     </div>
