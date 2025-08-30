@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/send-musician-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/send-musician-reminders?windowHours=3",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}

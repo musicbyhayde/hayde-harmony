@@ -1,0 +1,585 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MODERATOR
+  MUSICIAN
+  CLIENT
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  CONTRACT
+  DEPOSIT
+  BALANCE
+  WON
+  LOST
+}
+
+enum DealMode {
+  IN_HOUSE
+  MANAGED_CONTRACTOR
+  REFERRAL_ONLY
+}
+
+enum OpportunityStage {
+  QUOTED
+  WON
+  LOST
+}
+
+enum EventStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+  DONE
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum VendorType {
+  BAND
+  SOUND
+  LIGHTING
+  OTHER
+}
+
+enum CommissionType {
+  PERCENT
+  FIXED
+}
+
+enum RevenueType {
+  DEPOSIT
+  BALANCE
+  MGMT_FEE
+  REFERRAL_COMMISSION
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  BIT
+  CREDIT
+}
+
+enum PayeeType {
+  PARTNER
+  VENDOR
+  MUSICIAN
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+enum PaidBy {
+  COMPANY
+  PARTNER_A
+  PARTNER_B
+  OTHER
+}
+
+enum ProfitSplitType {
+  PERCENT
+  FIXED
+  MIX
+}
+
+enum TreasuryAccountType {
+  PARTNER_WALLET
+  CASH_BOX
+  BUSINESS_BANK
+}
+
+enum TransactionDirection {
+  IN
+  OUT
+}
+
+enum CounterpartyType {
+  CLIENT
+  VENDOR
+  MUSICIAN
+  PARTNER
+  OTHER
+}
+
+enum NotificationType {
+  MUSICIAN_REMINDER
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(CLIENT)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  // Relations to business models (future)
+  musicianProfile Musician? @relation(fields: [musicianId], references: [id])
+  musicianId      String?
+
+  @@index([email])
+  @@index([role])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Lead {
+  id        String    @id @default(cuid())
+  source    String?
+  clientName String
+  phone     String?
+  email     String?
+  eventType String?
+  date      DateTime?
+  location  String?
+  budget    Float?
+  status    LeadStatus @default(NEW)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  opportunities Opportunity[]
+  referralDeals ReferralDeal[]
+
+  @@index([status])
+  @@index([date])
+}
+
+model Opportunity {
+  id           String           @id @default(cuid())
+  leadId       String
+  dealMode     DealMode
+  packageName  String?
+  discount     Float            @default(0)
+  validUntil   DateTime?
+  stage        OpportunityStage @default(QUOTED)
+  price        Float            @default(0)
+  quotePdfUrl  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  lead       Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  quoteLines QuoteLine[]
+
+  @@index([leadId])
+  @@index([stage])
+}
+
+model QuoteLine {
+  id           String  @id @default(cuid())
+  opportunityId String
+  description  String
+  qty          Float   @default(1)
+  unitPrice    Float
+  taxIncluded  Boolean @default(true)
+  vatRate      Float   @default(0.17)
+
+  // Relations
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+}
+
+model Event {
+  id               String       @id @default(cuid())
+  clientName       String
+  clientPhone      String?
+  clientEmail      String?
+  title            String
+  date             DateTime
+  startTime        DateTime
+  endTime          DateTime
+  venue            String?
+  dealMode         DealMode
+  splitPolicyId    String?
+  processingFees   Float        @default(0)
+  status           EventStatus  @default(DRAFT)
+  techNotes        String?
+  stagePlotUrl     String?
+  riderUrl         String?
+  calendarHtmlLink String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  splitPolicy         ProfitSplitPolicy?    @relation(fields: [splitPolicyId], references: [id])
+  assignments         Assignment[]
+  contractorAgreements ContractorAgreement[]
+  referralDeals       ReferralDeal[]
+  revenueItems        RevenueItem[]
+  expenses            Expense[]
+  payouts             Payout[]
+  settlement          Settlement?
+  treasuryTransactions TreasuryTransaction[]
+  notificationLogs    NotificationLog[]
+
+  @@index([date])
+  @@index([status])
+  @@index([startTime, endTime])
+  @@index([splitPolicyId])
+}
+
+model Musician {
+  id        String @id @default(cuid())
+  name      String
+  roles     String? // comma-separated
+  instruments String?
+  phone     String?
+  email     String?
+  rateRange String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignments Assignment[]
+  expenses    Expense[]
+  notificationLogs NotificationLog[]
+  userAccounts User[] // Musicians can have user accounts
+
+  @@index([email])
+}
+
+model Assignment {
+  id         String           @id @default(cuid())
+  eventId    String
+  musicianId String
+  role       String?
+  agreedFee  Float?
+  status     AssignmentStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Relations
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  musician Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, musicianId])
+  @@index([eventId])
+  @@index([musicianId])
+  @@index([status])
+}
+
+model Vendor {
+  id           String     @id @default(cuid())
+  name         String
+  type         VendorType
+  contact      String?
+  email        String?
+  phone        String?
+  defaultRates String? // Text field
+  terms        String? // Text field
+  documentsUrl String?
+  rating       Int?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  contractorAgreements ContractorAgreement[]
+  referralDeals       ReferralDeal[]
+  expenses            Expense[]
+
+  @@index([type])
+  @@index([email])
+}
+
+model ContractorAgreement {
+  id           String  @id @default(cuid())
+  eventId      String
+  vendorId     String
+  fee          Float
+  currency     String  @default("ILS")
+  includesVat  Boolean @default(true)
+  vatRate      Float   @default(0.17)
+  terms        String? // Text field
+  documentsUrl String?
+  status       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([vendorId])
+}
+
+model ReferralDeal {
+  id                String         @id @default(cuid())
+  leadId            String?
+  eventId           String?
+  recipientVendorId String
+  commissionType    CommissionType
+  commissionRate    Float?
+  commissionAmount  Float
+  invoiceStatus     String?
+  paidOn            DateTime?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  lead            Lead?   @relation(fields: [leadId], references: [id])
+  event           Event?  @relation(fields: [eventId], references: [id])
+  recipientVendor Vendor  @relation(fields: [recipientVendorId], references: [id])
+
+  @@index([leadId])
+  @@index([eventId])
+  @@index([recipientVendorId])
+}
+
+model RevenueItem {
+  id                  String            @id @default(cuid())
+  eventId             String
+  type                RevenueType
+  amount              Float
+  currency            String            @default("ILS")
+  includesVat         Boolean           @default(true)
+  vatRate             Float             @default(0.17)
+  date                DateTime
+  reference           String?
+  method              PaymentMethod
+  receivedInAccountId String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  // Relations
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  receivedInAccount TreasuryAccount?  @relation(fields: [receivedInAccountId], references: [id])
+  treasuryTransactions TreasuryTransaction[]
+
+  @@index([eventId])
+  @@index([date])
+  @@index([receivedInAccountId])
+}
+
+model Expense {
+  id              String          @id @default(cuid())
+  eventId         String
+  vendorId        String?
+  vendorName      String?
+  musicianId      String?
+  musicianName    String?
+  category        String
+  amount          Float
+  currency        String          @default("ILS")
+  includesVat     Boolean         @default(true)
+  vatRate         Float           @default(0.17)
+  paidBy          PaidBy
+  date            DateTime
+  receiptUrl      String?
+  notes           String? // Text field
+  paidFromAccountId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor          Vendor?         @relation(fields: [vendorId], references: [id])
+  musician        Musician?       @relation(fields: [musicianId], references: [id])
+  paidFromAccount TreasuryAccount? @relation(fields: [paidFromAccountId], references: [id])
+  treasuryTransactions TreasuryTransaction[]
+
+  @@index([eventId])
+  @@index([vendorId])
+  @@index([musicianId])
+  @@index([date])
+  @@index([paidFromAccountId])
+}
+
+model Payout {
+  id       String       @id @default(cuid())
+  eventId  String?
+  payeeType PayeeType
+  payeeId  String
+  amount   Float
+  currency String       @default("ILS")
+  dueOn    DateTime
+  method   String?
+  status   PayoutStatus @default(PENDING)
+  notes    String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relations
+  event Event? @relation(fields: [eventId], references: [id])
+
+  @@index([eventId])
+  @@index([status])
+  @@index([dueOn])
+}
+
+model ProfitSplitPolicy {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  type           ProfitSplitType
+  partnerAShare  Float
+  partnerBShare  Float
+  minFundFloor   Float           @default(0)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  events Event[]
+}
+
+model Settlement {
+  id                        String   @id @default(cuid())
+  eventId                   String   @unique
+  grossRevenue              Float
+  directCosts               Float
+  processingFees            Float
+  netRevenue                Float
+  partnerADraw              Float
+  partnerBDraw              Float
+  businessFundContribution  Float
+  locked                    Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  treasuryTransactions TreasuryTransaction[]
+
+  @@index([eventId])
+}
+
+model TreasuryAccount {
+  id             String              @id @default(cuid())
+  type           TreasuryAccountType
+  ownerPartner   String?
+  displayName    String
+  openingBalance Float               @default(0)
+  currency       String              @default("ILS")
+  active         Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  transactions    TreasuryTransaction[]
+  revenueItems    RevenueItem[]
+  expenses        Expense[]
+
+  @@index([type])
+  @@index([active])
+}
+
+model TreasuryTransaction {
+  id               String            @id @default(cuid())
+  date             DateTime
+  accountId        String
+  direction        TransactionDirection
+  amount           Float
+  currency         String            @default("ILS")
+  method           PaymentMethod
+  counterpartyType CounterpartyType
+  counterpartyName String
+  linkEventId      String?
+  linkExpenseId    String?
+  linkRevenueId    String?
+  linkSettlementId String?
+  notes            String? // Text field
+  verified         Boolean           @default(false)
+  periodKey        String?
+  journalGroupId   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  account        TreasuryAccount @relation(fields: [accountId], references: [id])
+  linkEvent      Event?          @relation(fields: [linkEventId], references: [id])
+  linkExpense    Expense?        @relation(fields: [linkExpenseId], references: [id])
+  linkRevenue    RevenueItem?    @relation(fields: [linkRevenueId], references: [id])
+  linkSettlement Settlement?     @relation(fields: [linkSettlementId], references: [id])
+
+  @@index([accountId, date])
+  @@index([linkEventId])
+  @@index([journalGroupId])
+  @@index([date])
+}
+
+model NotificationLog {
+  id           String           @id @default(cuid())
+  type         NotificationType
+  eventId      String
+  musicianId   String
+  scheduledFor DateTime
+  sentAt       DateTime?
+  channel      String           @default("email")
+  dedupeKey    String           @unique
+  createdAt    DateTime         @default(now())
+
+  // Relations
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  musician Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([musicianId])
+  @@index([scheduledFor])
+}
